@@ -1,0 +1,140 @@
+version: "3.9"
+
+services:
+
+  # ── Gateway ──────────────────────────────────────────────────────────────
+  gateway:
+    build: ./gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-service
+      - image-storage-service
+      - plant-service
+      - inference-service
+    networks:
+      - plantdoc
+
+  # ── Auth Service ──────────────────────────────────────────────────────────
+  auth-service:
+    build: ./auth-service
+    environment:
+      DATABASE_URL: postgresql://auth_user:auth_pass@auth-db:5432/auth_db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-supersecretkey_change_in_prod}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - plantdoc
+    restart: unless-stopped
+
+  # ── Auth DB ───────────────────────────────────────────────────────────────
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - plantdoc
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Image Storage Service ─────────────────────────────────────────────────
+  image-storage-service:
+    build: ./image-storage-service
+    environment:
+      DATABASE_URL: postgresql://storage_user:storage_pass@image-db:5432/image_db
+      STORAGE_PATH: /data/images
+      BASE_URL: http://192.168.100.114
+    volumes:
+      - scan_images:/data/images
+    depends_on:
+      image-db:
+        condition: service_healthy
+    networks:
+      - plantdoc
+    restart: unless-stopped
+
+  # ── Image DB ──────────────────────────────────────────────────────────────
+  image-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: storage_user
+      POSTGRES_PASSWORD: storage_pass
+      POSTGRES_DB: image_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - image_db_data:/var/lib/postgresql/data
+    networks:
+      - plantdoc
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storage_user -d image_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Plant Service ─────────────────────────────────────────────────────────
+  plant-service:
+    build: ./plant-service
+    environment:
+      DATABASE_URL: postgresql://plant_user:plant_pass@plant-db:5432/plant_db
+    depends_on:
+      plant-db:
+        condition: service_healthy
+    networks:
+      - plantdoc
+    restart: unless-stopped
+
+  # ── Plant DB ──────────────────────────────────────────────────────────────
+  plant-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: plant_user
+      POSTGRES_PASSWORD: plant_pass
+      POSTGRES_DB: plant_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - plant_db_data:/var/lib/postgresql/data
+    networks:
+      - plantdoc
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plant_user -d plant_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Inference Service ────────────────────────────────────────────────────
+  inference-service:
+    build: ./inference-service
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    volumes:
+      - /Users/hnq/Desktop/licenta/cod_plante/models:/app/models:ro
+    networks:
+      - plantdoc
+    restart: unless-stopped
+
+volumes:
+  auth_db_data:
+  image_db_data:
+  plant_db_data:
+  scan_images:
+  # model_weights:    # uncomment when inference-service is added
+
+networks:
+  plantdoc:
+    driver: bridge

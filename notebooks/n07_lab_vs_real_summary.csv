@@ -1,0 +1,8 @@
+Metric,PlantVillage (Lab),PlantDoc (Real-world)
+Test Set,Validation set,Full dataset
+Number of Images,10849,2922
+Custom CNN Accuracy (%),94.16,10.13
+EfficientNet-B4 Accuracy (%),97.42,25.74
+Best Model,EfficientNet-B4,EfficientNet-B4
+Performance Drop (Custom CNN),baseline,-84.03%
+Performance Drop (EfficientNet-B4),baseline,-71.68%

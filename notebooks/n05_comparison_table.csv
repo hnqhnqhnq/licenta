@@ -1,0 +1,9 @@
+Metric,Custom CNN,EfficientNet-B4
+Accuracy (%),94.16,97.42
+Top-3 Accuracy (%),99.38,99.75
+F1-Score (macro),0.9000,0.9613
+F1-Score (weighted),0.9397,0.9742
+Precision (macro),0.9080,0.9621
+Recall (macro),0.8982,0.9611
+Inference time (ms/image),0.06,4.58
+Total parameters,26.1M,19.0M
